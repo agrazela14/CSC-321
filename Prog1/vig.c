@@ -129,7 +129,7 @@ void checkArgs(int argc, char **argv, arguments *args) {
             args->inFile = open(argv[cnt], O_RDONLY); 
         }
         else {
-            args->outFile = open(argv[cnt], O_RDWR | O_CREAT); 
+            args->outFile = open(argv[cnt], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU); 
         }
         cnt++;
     }
