@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <ctype.h>
 #include "vig.h"
 
 #define BUFFERSIZE 1024 
@@ -21,15 +24,15 @@ int main(int argc, char **argv) {
     args.verbose = 0;
     args.decipher = 0;
     args.key = calloc(1, BUFFERSIZE); //I don't actually know how big the key is allowed to be
-    args.inFile = fopen(stdin, "r");
-    args.outFile = fopen(stdout, "w+");
+    args.inFile = STDIN_FILENO;
+    args.outFile = STDOUT_FILENO;
     checkArgs(argc, argv, &args);
 
     if (args.decipher == 0) {
         encipher(&args);
     }
     else {
-        decipher(&args);
+        //decipher(&args);
     }
 
     free(args.key);
@@ -42,13 +45,15 @@ void encipher(arguments *args) {
     int readBytes;// = fread(plainText, 1, BUFFSIZE, args->inFile); 
     int keyLen = strlen(args->key);
     int keyCur = 0;
+    int ndx;
     
     do {
-        readBytes = fread(plainText, 1, BUFFERSIZE, args->inFile); 
+        readBytes = read(args->inFile, plainText, BUFFERSIZE); 
         for (ndx = 0; ndx < readBytes; ndx++) {
-            if ('a' <= plainText[ndx] && 'Z' >= plainText[ndx]) {
-                cipherText[ndx] = toUpper(plainText[ndx]); 
-                cipherText[ndx] += args->key[keyCur++];
+            plainText[ndx] = toupper(plainText[ndx]);
+            if ('A' <= plainText[ndx] && 'Z' >= plainText[ndx]) {
+                cipherText[ndx] = toupper(plainText[ndx]); //implicit def. of toupper, for whatever reason 
+                cipherText[ndx] += args->key[keyCur++] - 'A';
                 if (cipherText[ndx] > 'Z') {
                     cipherText[ndx] -= ALPHABETLEN;
                 } 
@@ -56,11 +61,11 @@ void encipher(arguments *args) {
             else {
                 cipherText[ndx] = plainText[ndx];
             }
-            if (keyCur > keyLen) {
+            if (keyCur >= keyLen) {
                 keyCur = 0;
             }
         }
-        fwrite(cipherText, 1, readBytes, args->outFile);
+        write(args->outFile, cipherText, readBytes);
     } while (readBytes == BUFFERSIZE);
 }
 
@@ -100,18 +105,18 @@ void checkArgs(int argc, char **argv, arguments *args) {
     int cnt = 1;
 
     while (cnt < argc) {
-        if (strcmp((argv)[cur], "-v") == 0) {
+        if (strcmp((argv)[cnt], "-v") == 0) {
             args->verbose = 1;
             printf("Verbosity Engaged\n");
         }
-        else if (strcmp((argv)[cur], "-d") == 0) {
+        else if (strcmp((argv)[cnt], "-d") == 0) {
             args->decipher = 1;
             if (args->verbose) {
                 printf("Deciphering mode\n"); 
             }
         }
         else if (args->key[0] == 0) {
-            strcpy(args->key, (argv)[cur]);
+            strcpy(args->key, (argv)[cnt]);
             for (int i = 0; i < strlen(args->key); i++) {
                 args->key[i] = toupper(args->key[i]);
                 if (args->key[i] < 'A' || args->key[i] > 'Z') {
@@ -120,12 +125,13 @@ void checkArgs(int argc, char **argv, arguments *args) {
                 }
             }
         }
-        else if (args->inFile == NULL) {
-            args->inFile = fopen(argv[cur], "r"); 
+        else if (args->inFile == STDIN_FILENO) {
+            args->inFile = open(argv[cnt], O_RDONLY); 
         }
         else {
-            args->outFile = fopen(argv[cur], "w+"); 
+            args->outFile = open(argv[cnt], O_RDWR | O_CREAT); 
         }
+        cnt++;
     }
 
     if (args->key == NULL) {

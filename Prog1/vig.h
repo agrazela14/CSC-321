@@ -5,8 +5,8 @@ typedef struct {
     int verbose;
     int decipher;
     char *key;
-    FILE*inFile;
-    FILE *outFile;
+    int inFile;
+    int outFile;
 } arguments; 
 
 int main(int argc, char **argv);
