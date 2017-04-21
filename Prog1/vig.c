@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
         encipher(&args);
     }
     else {
-        //decipher(&args);
+        decipher(&args);
     }
 
     free(args.key);
@@ -52,7 +52,7 @@ void encipher(arguments *args) {
         for (ndx = 0; ndx < readBytes; ndx++) {
             plainText[ndx] = toupper(plainText[ndx]);
             if ('A' <= plainText[ndx] && 'Z' >= plainText[ndx]) {
-                cipherText[ndx] = toupper(plainText[ndx]); //implicit def. of toupper, for whatever reason 
+                cipherText[ndx] = plainText[ndx]; //implicit def. of toupper, for whatever reason 
                 cipherText[ndx] += args->key[keyCur++] - 'A';
                 if (cipherText[ndx] > 'Z') {
                     cipherText[ndx] -= ALPHABETLEN;
@@ -71,35 +71,35 @@ void encipher(arguments *args) {
 
 //Copied over the encipher function, just modify it to decipher
 //Actually, verify that the encipher works
-/*
 void decipher(arguments *args) {
     char plainText[BUFFERSIZE]; 
     char cipherText[BUFFERSIZE]; 
-    int readBytes;// = fread(plainText, 1, BUFFERSIZE, args->inFile); 
+    int readBytes;// = fread(plainText, 1, BUFFSIZE, args->inFile); 
     int keyLen = strlen(args->key);
     int keyCur = 0;
+    int ndx;
     
     do {
-        readBytes = fread(plainText, 1, BUFFERSIZE, args->inFile); 
+        readBytes = read(args->inFile, cipherText, BUFFERSIZE); 
         for (ndx = 0; ndx < readBytes; ndx++) {
-            if ('a' <= plainText[ndx] && 'Z' >= plainText[ndx]) {
-                cipherText[ndx] = toUpper(plainText[ndx]); 
-                cipherText[ndx] += args->key[keyCur++];
-                if (cipherText[ndx] > 'Z') {
-                    cipherText[ndx] -= ALPHABETLEN;
+            cipherText[ndx] = toupper(cipherText[ndx]);
+            if ('A' <= cipherText[ndx] && 'Z' >= cipherText[ndx]) {
+                plainText[ndx] = cipherText[ndx]; //implicit def. of toupper, for whatever reason 
+                plainText[ndx] -= args->key[keyCur++] - 'A';
+                if (plainText[ndx] < 'A') {
+                    plainText[ndx] += ALPHABETLEN;
                 } 
             }
             else {
-                cipherText[ndx] = plainText[ndx];
+                plainText[ndx] = cipherText[ndx];
             }
-            if (keyCur > keyLen) {
+            if (keyCur >= keyLen) {
                 keyCur = 0;
             }
         }
-        fwrite(cipherText, 1, readBytes, args->outFile);
+        write(args->outFile, plainText, readBytes);
     } while (readBytes == BUFFERSIZE);
 }
-*/
 
 void checkArgs(int argc, char **argv, arguments *args) {
     int cnt = 1;
@@ -120,7 +120,7 @@ void checkArgs(int argc, char **argv, arguments *args) {
             for (int i = 0; i < strlen(args->key); i++) {
                 args->key[i] = toupper(args->key[i]);
                 if (args->key[i] < 'A' || args->key[i] > 'Z') {
-                    fprintf(stderr, "Invalid key, please use only latin numerals");
+                    fprintf(stderr, "Invalid key, please use only latin numerals\n");
                     exit(1);
                 }
             }
@@ -135,7 +135,7 @@ void checkArgs(int argc, char **argv, arguments *args) {
     }
 
     if (args->key == NULL) {
-        fprintf(stderr, "Key not defined");
+        fprintf(stderr, "Key not defined\n");
         exit(1);
     }
 }
