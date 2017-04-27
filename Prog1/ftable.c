@@ -25,12 +25,42 @@ int main(int argc, char **argv) {
 }
 
 void table(arguments *args) {
-    char curChar;//[args->period]; 
+    char curChar = 0;//[args->period]; 
     int alphabetCount[ALPHABETLEN] = {};
-    int ndx;
+    int skipNdx = 0, periodNdx = args->period;
     //int readBytes = 0;// = fread(plainText, 1, BUFFSIZE, args->inFile); 
     int totalRead = 0;
+    
+    while (curChar != EOF && skipNdx < args->skip) { 
+        curChar = fgetc(args->inFile);
+        while (!isalpha(curChar)) {
+            curChar = fgetc(args->inFile);
+            if (curChar == EOF) {
+                break;
+            }
+        } 
+        skipNdx++; 
+    }
+    while (curChar != EOF) {
+        curChar = fgetc(args->inFile);
+        while (!isalpha(curChar)) {
+            curChar = fgetc(args->inFile);
+            if (curChar == EOF) {
+                break;
+            }
+        } 
+        if (periodNdx < args->period - 1) {
+            periodNdx++;
+        }
+        else {
+            alphabetCount[curChar - 'A']++;
+            totalRead += 1;
+            periodNdx = 0;
+        }
+    }
 
+
+    /*
     if (args->skip > 0) {
         for(ndx = 0; ndx > args->skip; ndx++) {
             fgetc(args->inFile);
@@ -47,6 +77,7 @@ void table(arguments *args) {
             fgetc(args->inFile);
         }
     }
+    */
     
     /*     
     do {
