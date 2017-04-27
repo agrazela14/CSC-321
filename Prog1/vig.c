@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     arguments args;
     args.verbose = 0;
     args.decipher = 0;
-    args.key = calloc(1, BUFFERSIZE); //I don't actually know how big the key is allowed to be
+    args.key = calloc(1, BUFFERSIZE);
     args.inFile = STDIN_FILENO;
     args.outFile = STDOUT_FILENO;
     checkArgs(argc, argv, &args);
@@ -52,7 +52,7 @@ void encipher(arguments *args) {
         for (ndx = 0; ndx < readBytes; ndx++) {
             plainText[ndx] = toupper(plainText[ndx]);
             if ('A' <= plainText[ndx] && 'Z' >= plainText[ndx]) {
-                cipherText[ndx] = plainText[ndx]; //implicit def. of toupper, for whatever reason 
+                cipherText[ndx] = plainText[ndx];  
                 cipherText[ndx] += args->key[keyCur++] - 'A';
                 if (cipherText[ndx] > 'Z') {
                     cipherText[ndx] -= ALPHABETLEN;
@@ -84,7 +84,7 @@ void decipher(arguments *args) {
         for (ndx = 0; ndx < readBytes; ndx++) {
             cipherText[ndx] = toupper(cipherText[ndx]);
             if ('A' <= cipherText[ndx] && 'Z' >= cipherText[ndx]) {
-                plainText[ndx] = cipherText[ndx]; //implicit def. of toupper, for whatever reason 
+                plainText[ndx] = cipherText[ndx]; 
                 plainText[ndx] -= args->key[keyCur++] - 'A';
                 if (plainText[ndx] < 'A') {
                     plainText[ndx] += ALPHABETLEN;
@@ -120,7 +120,7 @@ void checkArgs(int argc, char **argv, arguments *args) {
             for (int i = 0; i < strlen(args->key); i++) {
                 args->key[i] = toupper(args->key[i]);
                 if (args->key[i] < 'A' || args->key[i] > 'Z') {
-                    fprintf(stderr, "Invalid key, please use only latin numerals\n");
+                    fprintf(stderr, "Invalid key, use only latin numerals\n");
                     exit(1);
                 }
             }
@@ -129,7 +129,8 @@ void checkArgs(int argc, char **argv, arguments *args) {
             args->inFile = open(argv[cnt], O_RDONLY); 
         }
         else {
-            args->outFile = open(argv[cnt], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU); 
+            args->outFile = open(argv[cnt], 
+             O_RDWR | O_TRUNC | O_CREAT, S_IRWXU); 
         }
         cnt++;
     }

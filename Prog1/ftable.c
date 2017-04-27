@@ -15,8 +15,8 @@ int main(int argc, char **argv) {
     args.verbose = 0;
     args.skip = 0;
     args.period = 1;
-    args.inFile = STDIN_FILENO;
-    args.outFile = STDOUT_FILENO;
+    args.inFile = stdin;//STDIN_FILENO;
+    args.outFile = stdout;STDOUT_FILENO;
     checkArgs(argc, argv, &args);
 
     table(&args);
@@ -25,16 +25,30 @@ int main(int argc, char **argv) {
 }
 
 void table(arguments *args) {
-    char curChar[args->period]; 
+    char curChar;//[args->period]; 
     int alphabetCount[ALPHABETLEN] = {};
-    int readBytes = 0;// = fread(plainText, 1, BUFFSIZE, args->inFile); 
+    int ndx;
+    //int readBytes = 0;// = fread(plainText, 1, BUFFSIZE, args->inFile); 
     int totalRead = 0;
 
     if (args->skip > 0) {
-        char dump[args->skip];
-        read(args->inFile, dump, args->skip);
+        for(ndx = 0; ndx > args->skip; ndx++) {
+            fgetc(args->inFile);
+        }
     }
     
+    while ((curChar = fgetc(args->inFile)) != EOF) {
+        curChar = toupper(curChar);
+        if (curChar <= 'Z' && curChar >= 'A') {
+            alphabetCount[curChar - 'A']++;
+            totalRead += 1;
+        }
+        for (ndx = 0; ndx < args->period - 1; ndx++) {
+            fgetc(args->inFile);
+        }
+    }
+    
+    /*     
     do {
         readBytes = read(args->inFile, curChar, args->period);
         curChar[0] = toupper(curChar[0]);
@@ -43,6 +57,7 @@ void table(arguments *args) {
             totalRead += 1;
         }
     } while (readBytes == args->period);
+    */
     printout(alphabetCount, totalRead, args);
 }
 
@@ -57,17 +72,20 @@ void printout(int *alphabetTable, int totalRead, arguments *args) {
     asterisk[100] = '\0';
 
     sprintf(buf, "Total chars: %d\n", totalRead);
-    write(args->outFile, buf, strlen(buf));
+    fputs(buf, args->outFile);
+    //write(args->outFile, buf, strlen(buf));
     for (i = 0; i < ALPHABETLEN; i++) {
         sprintf(buf, "%C:% 9d (%5.2lf%%) %.*s\n", 'A' + i, alphabetTable[i], 
-         100 * ((double)alphabetTable[i] / totalRead), (int)ceil((double)alphabetTable[i] / totalRead * 100), asterisk);
+         100 * ((double)alphabetTable[i] / totalRead), 
+          (int)ceil((double)alphabetTable[i] / totalRead * 100), asterisk);
         /*
         for (int j = 0; j < alphabetTable[i]; j++) {
             sprintf(buf + strlen(buf) - 1, "*");
         }
         sprintf(buf + strlen(buf), "\n");
         */
-        write(args->outFile, buf, strlen(buf));
+        fputs(buf, args->outFile);
+        //write(args->outFile, buf, strlen(buf));
     }
 }
 
@@ -77,30 +95,36 @@ void checkArgs(int argc, char **argv, arguments *args) {
     while (cnt < argc) {
         if (strcmp((argv)[cnt], "-v") == 0) {
             args->verbose = 1;
-            printf("Verbosity Engaged\n");
         }
 
         else if (strcmp((argv)[cnt], "-s") == 0) {
             args->skip = atoi(argv[++cnt]);
-            if (args->verbose) {
-                printf("Skip mode, skipping first %d\n", args->skip); 
-            }
         }
 
         else if (strcmp((argv)[cnt], "-p") == 0) {
             args->period = atoi(argv[++cnt]);
-            if (args->verbose) {
-                printf("Period mode, counting every %d characters\n", args->period); 
-            }
         }
         
-        else if (args->inFile == STDIN_FILENO) {
-            args->inFile = open(argv[cnt], O_RDONLY); 
+        else if (args->inFile == stdin) {
+            args->inFile = fopen(argv[cnt], "r"); 
+            if (args->inFile < 0) {
+                fprintf(stderr, "Bad input file\n");
+                exit (-1);
+            }
         }
         else {
-            args->outFile = open(argv[cnt], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU); 
+            args->outFile = fopen(argv[cnt], "w+"); 
         }
         cnt++;
+    }
+    if (args->verbose) {
+        printf("Verbosity Engaged\n");
+        if (args->skip) {
+            printf("Skip mode, skipping first %d\n", args->skip); 
+        }
+        if (args->period > 1) {
+            printf("Period mode, every %d characters\n", args->period); 
+        }
     }
 }
 
