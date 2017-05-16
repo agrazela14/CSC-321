@@ -34,35 +34,115 @@ int main(int argc, char **argv) {
 //Then discard all with no repeats
 //Then look at each of those locations for 1 longer substrs
 //Repeat until there are no substrings found with more than 1 count
+
+
+//Actually maybe all this is overdoing it, maybe I just need to have it operate
+//Like the first pass until it doesn't find any
 void kasiski(arguments *args) {
     int fileLen;
-    char *text;
+    int originalMinLen = args->minSubStr;
+    char *text, curChar;
     int subStrUsed = 0, newSubStr = 1;
     int fileNdx, subStrNdx;
     int subStrLen = args->minSubstr + 1;
+    int used = 0, dataMax = 10;
     subStringData *data = malloc(10 * sizeof(subStringData));
+    subStringData *dataIndex = data;
 
     fseek(args->inFile, 0L, SEEK_END);
     fileLen = ftell(args->inFile);
     rewind(args->inFile);
     text = malloc(fileLen);
-    
-    fread(text, fileLen, 1, args->inFile);
+    ndx2 = 0;
+     
+    for (ndx = 0; ndx < fileLen; ndx++) {
+        curChar = fgetc(args->inFile);
+        if (isalpha(curChar)) {
+            text[ndx2] = toupper(curChar);
+            ndx2++;
+        }
+    } 
+    fileLen = ndx2;
+    text[ndx2] = '\0';
+    //fread(text, fileLen, 1, args->inFile);
 
-    subStrUsed = initialPass(args, &data, text, fileLen);
+    /*
+    subStrUsed = initialPass(args, &data, text, fileLen, *used, *dataMax);
+    newSubStr = subStrUsed;
+    */
     //This tells us how many min length subStr there are, as well as putting them in an array
     //Now keep going over it until there aren't any more added
     while (newSubStr != 0) {
-        mewSubStr = continuedPass(args, &data, text, fileLen, subStrUsed); 
+        newSubStr = initialPass(args, &dataIndex, text, fileLen, *used, *dataMax);
         subStrUsed += newSubStr;
+        args->minSubStr += 1;
+        dataIndex += newSubStr * sizeof(data);
+        /*
+        mewSubStr = continuedPass(args, &data, text, 
+         fileLen, subStrUsed - newSubStr, subStrUsed, subStrLen); 
+        subStrLen++;
+        */
     } 
-    
-        
+    args->minSubStr = originalMinLen; 
+    printout(args, data, subStrUsed); 
+    free(data);    
     free(text); 
 
 }
 
-int initialPass(arguments *args, subStringData **data, char *text, int fileLen) {
+//Ordering these might be a pain...
+void printout(arguments *args, subStringData *data, int subStrs) {
+    int ndx;
+
+    if (args->distanceMode) {
+        fprintf(args->outFile, "Length   Count   Word   Locations\n");  
+    }
+    else {
+        fprintf(args->outFile, "Length   Count   Word   Distance\n");  
+    }
+    fprintf(args->outFile, "======   =====   ====   ==========\n");  
+    
+    qsort(data, subStrs, sizeof(subStringData), compare_function); 
+    
+    //For each one print length, count, the substr, and then either locations or distances
+    for (ndx = 0; ndx < subStrs; ndx++) {
+        fprintf(args->outFile, "%5d   %4d   %s   ", 
+         data[ndx]->strLen, data[ndx]->count, data[ndx]->subStr); 
+    }
+}
+
+//A before B return negative
+int compare_function(const void *a, const void *b) {
+
+    subStringData *dataA = (subStringData *)a;
+    subStringData *dataB = (subStringData *)B;
+
+    if (dataA->strLen != dataB->strLen) {
+        return dataB->strLen - dataA->strLen;
+    }
+
+    if (dataA->count != dataB->count) {
+        return dataB-count - dataA->count;
+    }
+    return strcmp(dataB->subStr, dataA->subStr);
+
+}
+
+//Checking from the dataStart to dataEnd indicies, what are the substrings that follow up
+//dataStart is where the previous length subStrs start
+/*
+int continuedPass(arguments *args, subStringData **data, 
+ char *text, int fileLen, int dataStart, int dataEnd, int length) {
+    int ndx;
+    
+    for (ndx = dataStart; ndx < dataEnd; ndx++) {
+         
+    
+} 
+*/
+
+int initialPass(arguments *args, subStringData **data, char *text, 
+ int fileLen, int *used, int *dataMax) {
     int ndx, ndx2;
     int used = 0, dataMax = 10;
     int found = 0;
@@ -73,7 +153,7 @@ int initialPass(arguments *args, subStringData **data, char *text, int fileLen) 
     for (ndx = 0; ndx < fileLen - args->minSubstr; ndx++) {
         memcpy(subStr, text + ndx, args->minSubstr);
         subStr[args->minSubstr] = '\0';
-        for (ndx2 = 0; ndx2 < used; ndx2++) {
+        for (ndx2 = 0; ndx2 < *used; ndx2++) {
             if (strcmp(data[ndx2]->substr, subStr) == 0) {
                 if ((*data)[ndx]->count == 1) {
                     multipleInstances++;
@@ -84,13 +164,13 @@ int initialPass(arguments *args, subStringData **data, char *text, int fileLen) 
             }
         }
         if (!found) {
-            (*data)[used]->locations[(*data)[used]->count] = ndx;
-            (*data)[used]->count = 1;
-            strcpy(data[used]->substr, subStr); 
-            used++;
-            if (used == dataMax) {
-                max *= 2;
-                (*data) = realloc(data, max * sizeof(subStringData)); 
+            (*data)[*used]->locations[(*data)[*used]->count] = ndx;
+            (*data)[*used]->count = 1;
+            strcpy(data[*used]->substr, subStr); 
+            (*used)++;
+            if (*used == *dataMax) {
+                *dataMax *= 2;
+                (*data) = realloc(data, *dataMax * sizeof(subStringData)); 
             }
         }
     } 
@@ -99,15 +179,19 @@ int initialPass(arguments *args, subStringData **data, char *text, int fileLen) 
     //Ones with a count of 0
     temp = malloc(multipleInstances * sizeof(subStringData));
     ndx2 = 0;
-    for (ndx = 0; ndx < used; ndx++) {
+    for (ndx = 0; ndx < *used; ndx++) {
         if ((*data)[ndx]->count > 1) {
             memcpy(temp[ndx2], (*data)[ndx], sizeof(subStringData));
             ndx2++;
         }
     }
     
+    memcpy(*data, temp, multipleInstances * sizeof(subStringData)); 
+    free(temp);
+    /*
     free(*data);
     *data = temp;
+    */
     return multipleInstances;
 } 
 
