@@ -6,7 +6,7 @@ CC = gcc
 CFLAGS = -g -Wall 
 #CFLAGS = -g
 
-all: vig ftable ic kasiski
+all:  ftable ic kasiski
 
 ic: ic.c
 	$(CC) $(CFLAGS) -o ic ic.c -lm 

@@ -106,8 +106,29 @@ void printout(arguments *args, subStringData *data, int subStrs) {
     
     //For each one print length, count, the substr, and then either locations or distances
     for (ndx = 0; ndx < subStrs; ndx++) {
+        variablePrint(args, data[ndx]); 
+        /*
         fprintf(args->outFile, "%5d   %4d   %s   ", 
          data[ndx]->strLen, data[ndx]->count, data[ndx]->subStr); 
+        */
+    }
+}
+
+void variablePrint(arguments *args, subStringData *data) {
+    int *values;
+    int numDist = 0, ndx;
+
+    if (args->distanceMode) {
+        //print out the distances between every location in data
+        for (ndx = data->count - 1; ndx > 0; ndx--) {
+            numDist += ndx;
+        }
+        values = malloc(sizeof(int) * numDist);
+          
+         
+    }
+    else {
+
     }
 }
 
