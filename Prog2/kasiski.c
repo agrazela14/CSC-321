@@ -7,21 +7,11 @@
 #include <math.h>
 #include "kasiski.h"
 
-#define SUBSTRLEN 255
-#define LOCATIONMAX 255
-
-typedef struct{
-    char substr[SUBSTRLEN];
-    int locations[LOCATIONMAX];
-    int strlen;
-    int count;
-} subStringData;
-
 int main(int argc, char **argv) {
     arguments args;
     args.verbose = 0;
     args.distanceMode = 0;
-    args.minSubstr = 3;
+    args.minSubStr = 3;
     args.inFile = stdin;
     args.outFile = stdout; 
     checkArgs(argc, argv, &args);
@@ -43,8 +33,8 @@ void kasiski(arguments *args) {
     int originalMinLen = args->minSubStr;
     char *text, curChar;
     int subStrUsed = 0, newSubStr = 1;
-    int fileNdx, subStrNdx;
-    int subStrLen = args->minSubstr + 1;
+    int ndx, ndx2;
+    //int subStrLen = args->minSubStr + 1;
     int used = 0, dataMax = 10;
     subStringData *data = malloc(10 * sizeof(subStringData));
     subStringData *dataIndex = data;
@@ -64,6 +54,7 @@ void kasiski(arguments *args) {
     } 
     fileLen = ndx2;
     text[ndx2] = '\0';
+    printf("Filelen: %d Text:\n%s\n", fileLen, text);
     //fread(text, fileLen, 1, args->inFile);
 
     /*
@@ -73,7 +64,7 @@ void kasiski(arguments *args) {
     //This tells us how many min length subStr there are, as well as putting them in an array
     //Now keep going over it until there aren't any more added
     while (newSubStr != 0) {
-        newSubStr = initialPass(args, &dataIndex, text, fileLen, *used, *dataMax);
+        newSubStr = initialPass(args, &dataIndex, text, fileLen, &used, &dataMax);
         subStrUsed += newSubStr;
         args->minSubStr += 1;
         dataIndex += newSubStr * sizeof(data);
@@ -106,7 +97,7 @@ void printout(arguments *args, subStringData *data, int subStrs) {
     
     //For each one print length, count, the substr, and then either locations or distances
     for (ndx = 0; ndx < subStrs; ndx++) {
-        variablePrint(args, data[ndx]); 
+        variablePrint(args, &data[ndx]); 
         /*
         fprintf(args->outFile, "%5d   %4d   %s   ", 
          data[ndx]->strLen, data[ndx]->count, data[ndx]->subStr); 
@@ -119,7 +110,7 @@ void variablePrint(arguments *args, subStringData *data) {
     int numDist = 0, ndx, ndx2, count = 0;
 
     fprintf(args->outFile, "%5d   %4d   %s   ", 
-     data[ndx]->strLen, data[ndx]->count, data[ndx]->subStr); 
+     data->strlen, data->count, data->substr); 
 
     if (args->distanceMode) {
         //print out the distances between every location in data
@@ -133,11 +124,11 @@ void variablePrint(arguments *args, subStringData *data) {
             }
         }
         for (ndx = 0; ndx < numDist; ndx++) {
-            if (values[ndx] >= data->strLen) {
-                fprintf(data->outFile, "%d ", values[ndx]);
+            if (values[ndx] >= data->strlen) {
+                fprintf(args->outFile, "%d ", values[ndx]);
             }
         }
-        fprintf(data->outFile, "\n");   
+        fprintf(args->outFile, "\n");   
     }
     else {
         for (ndx = 0; ndx < data->count; ndx++) {
@@ -151,16 +142,16 @@ void variablePrint(arguments *args, subStringData *data) {
 int compare_function(const void *a, const void *b) {
 
     subStringData *dataA = (subStringData *)a;
-    subStringData *dataB = (subStringData *)B;
+    subStringData *dataB = (subStringData *)b;
 
-    if (dataA->strLen != dataB->strLen) {
-        return dataB->strLen - dataA->strLen;
+    if (dataA->strlen != dataB->strlen) {
+        return dataB->strlen - dataA->strlen;
     }
 
     if (dataA->count != dataB->count) {
-        return dataB-count - dataA->count;
+        return dataB->count - dataA->count;
     }
-    return strcmp(dataB->subStr, dataA->subStr);
+    return strcmp(dataB->substr, dataA->substr);
 
 }
 
@@ -180,35 +171,38 @@ int continuedPass(arguments *args, subStringData **data,
 int initialPass(arguments *args, subStringData **data, char *text, 
  int fileLen, int *used, int *dataMax) {
     int ndx, ndx2;
-    int used = 0, dataMax = 10;
+    //int used = 0, dataMax = 10;
     int found = 0;
     int multipleInstances = 0;
-    char subStr[args->minSubstr + 1];
+    char subStr[args->minSubStr + 1];
     subStringData *temp;
     //Find all min length substrings 
-    for (ndx = 0; ndx < fileLen - args->minSubstr; ndx++) {
-        memcpy(subStr, text + ndx, args->minSubstr);
-        subStr[args->minSubstr] = '\0';
+    for (ndx = 0; ndx < fileLen - args->minSubStr; ndx++) {
+        memcpy(subStr, text + ndx, args->minSubStr);
+        subStr[args->minSubStr] = '\0';
         for (ndx2 = 0; ndx2 < *used; ndx2++) {
             if (strcmp(data[ndx2]->substr, subStr) == 0) {
-                if ((*data)[ndx]->count == 1) {
+                if ((*data)[ndx].count == 1) {
                     multipleInstances++;
                 }
-                data[ndx2]->count++;
+                (*data)[ndx2].count++;
                 found = 1;
                 break;
             }
         }
         if (!found) {
-            (*data)[*used]->locations[(*data)[*used]->count] = ndx;
-            (*data)[*used]->count = 1;
+            (*data)[*used].locations[(*data)[*used].count] = ndx;
+            (*data)[*used].count = 1;
+            printf("Right before strcpy, substr = %s\n", subStr);
             strcpy(data[*used]->substr, subStr); 
+            printf("Right after strcpy\n");
             (*used)++;
             if (*used == *dataMax) {
                 *dataMax *= 2;
                 (*data) = realloc(data, *dataMax * sizeof(subStringData)); 
             }
         }
+        found = 0;
     } 
     //Now we should have all the min length subStrings 
     //so we can go ahead and get rid of the
@@ -216,8 +210,8 @@ int initialPass(arguments *args, subStringData **data, char *text,
     temp = malloc(multipleInstances * sizeof(subStringData));
     ndx2 = 0;
     for (ndx = 0; ndx < *used; ndx++) {
-        if ((*data)[ndx]->count > 1) {
-            memcpy(temp[ndx2], (*data)[ndx], sizeof(subStringData));
+        if ((*data)[ndx].count > 1) {
+            memcpy(&(temp[ndx2]), &(*data)[ndx], sizeof(subStringData));
             ndx2++;
         }
     }
@@ -245,7 +239,7 @@ void checkArgs(int argc, char **argv, arguments *args) {
         }
 
         else if (strcmp((argv)[cnt], "-m") == 0) {
-            args->minSubstr = atoi(argv[++cnt]);
+            args->minSubStr = atoi(argv[++cnt]);
         }
         
         else if (args->inFile == stdin) {
@@ -259,15 +253,6 @@ void checkArgs(int argc, char **argv, arguments *args) {
             args->outFile = fopen(argv[cnt], "w+"); 
         }
         cnt++;
-    }
-    if (args->verbose) {
-        printf("Verbosity Engaged\n");
-        if (args->skip) {
-            printf("Skip mode, skipping first %d\n", args->skip); 
-        }
-        if (args->period > 1) {
-            printf("Period mode, every %d characters\n", args->period); 
-        }
     }
 }
 
