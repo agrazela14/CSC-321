@@ -1,10 +1,10 @@
 #ifndef KASISKI_H
 #define KASISKI_H
 
-#define SUBSTRLEN 255
-#define LOCATIONMAX 255
+#define SUBSTRLEN 16 
+#define LOCATIONMAX 16 
 
-typedef struct{
+typedef struct {
     char substr[SUBSTRLEN];
     int locations[LOCATIONMAX];
     int strlen;
