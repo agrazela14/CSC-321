@@ -65,7 +65,7 @@ void kasiski(arguments *args) {
     while (newSubStr != 0) {
         newSubStr = initialPass(args, &data/*Index*/, text, fileLen, &used, &dataMax);
         subStrUsed += newSubStr;
-        used = newSubStr;
+        used = subStrUsed;
         args->minSubStr += 1;
         //dataIndex += newSubStr * sizeof(data);
     } 
@@ -128,8 +128,8 @@ void variablePrint(arguments *args, subStringData *data) {
 }
 
 //A before B return negative
+//Higher Len first, then higher count, then lowest alphabet
 int compare_function(const void *a, const void *b) {
-
     subStringData *dataA = (subStringData *)a;
     subStringData *dataB = (subStringData *)b;
 
@@ -140,8 +140,7 @@ int compare_function(const void *a, const void *b) {
     if (dataA->count != dataB->count) {
         return dataB->count - dataA->count;
     }
-    return strcmp(dataB->substr, dataA->substr);
-
+    return strcmp(dataA->substr, dataB->substr);
 }
 
 int initialPass(arguments *args, subStringData **data, char *text, 
@@ -165,6 +164,7 @@ int initialPass(arguments *args, subStringData **data, char *text,
                 if ((*data)[ndx2].count == 1) {
                     multipleInstances++;
                 }
+                (*data)[ndx2].locations[(*data)[ndx2].count] = ndx;
                 (*data)[ndx2].count++;
                 found = 1;
                 break;
@@ -200,6 +200,12 @@ int initialPass(arguments *args, subStringData **data, char *text,
             ndx2++;
         }
     }
+    //Put only the ones with more than 1 count
+    for (ndx = start; ndx < *used; ndx++) {
+        memcpy((&(*data)[ndx]), &temp[ndx - start], sizeof(subStringData));
+    }
+
+    memset(&(*data)[*used], 0, &(*data)[*dataMax] - &(*data)[*used]);
     free(temp);
     if (args->verbose) {
         printf("temp freed\n");
